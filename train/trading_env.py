@@ -4,7 +4,7 @@ import pandas as pd
 from gym import spaces
 
 class TradingEnv(gym.Env):
-    def __init__(self, df, initial_cash=1000000, transaction_cost=0.001):
+    def __init__(self, df, initial_cash=1000000, transaction_cost=0.001, max_holdings=1):
         super(TradingEnv, self).__init__()
 
         self.df = df
@@ -14,6 +14,8 @@ class TradingEnv(gym.Env):
 
         self.initial_cash = initial_cash
         self.transaction_cost = transaction_cost
+        self.holdings = 0
+        self.max_holdings = max_holdings
         self.episode_reward = 0
         self.episode_rewards = []
         self.actions_history = []
@@ -34,7 +36,7 @@ class TradingEnv(gym.Env):
         penalty = 0.1
 
         if action == 1:  # Buy
-            if self.cash >= current_price:
+            if self.cash >= current_price and self.holdings < self.max_holdings:
                 self.holdings += 1
                 self.cash -= current_price * (1 + self.transaction_cost)
             else:
@@ -45,6 +47,10 @@ class TradingEnv(gym.Env):
                 self.cash += current_price * (1 - self.transaction_cost)
             else:
                 reward -= penalty
+
+        # If no stocks are held and no action is taken, reward is zero due to lost opportunity.
+        if self.holdings == 0 and action == 0:
+            reward = -0.1
 
         new_total_asset = self.cash + self.holdings * current_price
         reward += new_total_asset - old_total_asset
@@ -59,7 +65,7 @@ class TradingEnv(gym.Env):
             "reward": reward,
             "done": done
         })
-        self.episode_rewards.append(reward)
+        self.episode_rewards.append(self.episode_reward)
         self.actions_history.append(action)
         self.total_asset_history.append(new_total_asset)
 
@@ -70,9 +76,6 @@ class TradingEnv(gym.Env):
         self.holdings = 0
         self.current_step = 0
         self.history = []
-        self.episode_rewards = []
-        self.actions_history = []
-        self.total_asset_history = []
         return self._get_observation()
     
     def _get_observation(self):
