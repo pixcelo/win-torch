@@ -36,29 +36,22 @@ class TradingEnv(gym.Env):
 
         self.current_step += 1
         old_total_asset = self.cash + self.holdings * current_price
-        reward = 0
-        penalty = 0.01
 
         if action == 1:  # Buy
             if self.cash >= current_price and self.holdings < self.max_holdings:
                 self.holdings += 1
                 self.cash -= current_price * (1 + self.transaction_cost)
-            else:
-                reward -= old_total_asset * penalty
+
         elif action == 2:  # Sell
             if self.holdings > 0:
                 self.holdings -= 1
                 self.cash += current_price * (1 - self.transaction_cost)
-            else:
-                reward -= old_total_asset * penalty
 
-        # If no stocks are held and no action is taken, reward is zero due to lost opportunity.
-        if self.holdings == 0 and action == 0:
-            reward -= old_total_asset * penalty
-
-        # Reward is the relative change in total assets, with penalties for invalid actions and inaction when no stocks are held.
         new_total_asset = self.cash + self.holdings * current_price
-        reward += (new_total_asset - old_total_asset) / old_total_asset if old_total_asset > 0 else 0
+        
+        # Use RewardCalculator to calculate reward
+        reward = self.reward_calculator.calculate(new_total_asset)
+        
         self.episode_reward += reward
 
         # Record the history
