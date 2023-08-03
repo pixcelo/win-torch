@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from gym import spaces
 from reward_calculator import RewardCalculator
+from reward_scheme import RewardScheme
 
 class TradingEnv(gym.Env):
     def __init__(self, df, initial_cash=100000, transaction_cost=0.001, max_holdings=1):
@@ -50,7 +51,9 @@ class TradingEnv(gym.Env):
         new_total_asset = self.cash + self.holdings * current_price
         
         # Use RewardCalculator to calculate reward
-        reward = self.reward_calculator.calculate(new_total_asset)
+        # reward = self.reward_calculator.calculate(new_total_asset)
+        reward_calculator = RewardScheme()
+        reward = reward_calculator.get_reward(old_total_asset, new_total_asset, action)
         
         self.episode_reward += reward
 
